@@ -22,7 +22,7 @@ const MODES: { value: SearchMode; label: string }[] = [
   { value: "title", label: "Название" },
 ];
 // Поиск по тексту — только если в каталоге есть слова текстов (импорт из EnCore).
-const LYRICS_MODE = { value: "lyrics" as SearchMode, label: "Текст" };
+const LYRICS_MODE = { value: "lyrics" as SearchMode, label: "Слова песни" };
 
 const BACKS: { value: BackFilter; label: string }[] = [
   { value: "", label: "Все" },
@@ -132,13 +132,13 @@ export function Catalog() {
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
       <header className="sticky top-0 z-10 border-b border-line bg-background/95 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur sm:px-6">
         <div className="mb-3 flex items-baseline justify-between gap-4">
-          <h1 className="text-xl font-semibold tracking-tight">
+          <h1 className="shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight">
             <button type="button" onClick={reset} className="cursor-pointer">
               Каталог песен
             </button>
           </h1>
           {stats && (
-            <p className="text-sm text-muted">
+            <p className="text-right text-sm text-muted">
               {fmt.format(stats.songs)} песен · {fmt.format(stats.artists)} исполнителей
             </p>
           )}
@@ -158,7 +158,7 @@ export function Catalog() {
             type="search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={mode === "lyrics" ? "Слова из песни" : "Исполнитель или название"}
+            placeholder={placeholder(mode, !!stats?.lyrics)}
             aria-label="Поиск песни"
             enterKeyHint="search"
             autoComplete="off"
@@ -337,6 +337,18 @@ function SongRow({ song, onArtist }: { song: Song; onArtist: (name: string) => v
   );
 }
 
+function placeholder(mode: SearchMode, hasLyrics: boolean): string {
+  switch (mode) {
+    case "artist":
+      return "Исполнитель";
+    case "title":
+      return "Название песни";
+    case "lyrics":
+      return "Строчка или слова из песни";
+  }
+  return hasLyrics ? "Исполнитель, песня или строчка" : "Исполнитель или название";
+}
+
 const badge = "rounded-md border border-line px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted";
 
 function Segmented<T extends string>({
@@ -349,14 +361,14 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex rounded-xl border border-line bg-surface p-1">
+    <div className="flex max-w-full overflow-x-auto rounded-xl border border-line bg-surface p-1 [scrollbar-width:none]">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
-          className={`cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          className={`shrink-0 cursor-pointer whitespace-nowrap rounded-lg px-2.5 py-2 text-sm font-medium transition-colors sm:px-3 ${
             value === o.value ? "bg-accent text-accent-fg" : "text-muted hover:text-foreground"
           }`}
         >
