@@ -125,7 +125,7 @@ export function Catalog() {
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col">
-      <header className="sticky top-0 z-10 border-b border-line bg-background/95 px-4 pb-3 pt-4 backdrop-blur sm:px-6">
+      <header className="sticky top-0 z-10 border-b border-line bg-background/95 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur sm:px-6">
         <div className="mb-3 flex items-baseline justify-between gap-4">
           <h1 className="text-xl font-semibold tracking-tight">
             <button type="button" onClick={reset} className="cursor-pointer">
@@ -197,7 +197,7 @@ export function Catalog() {
         )}
       </header>
 
-      <main className="flex-1 px-4 pb-10 sm:px-6">
+      <main className="flex-1 px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:px-6">
         {results?.artists && results.artists.length > 0 && !loading && (
           <div className="flex gap-2 overflow-x-auto py-3 [scrollbar-width:none]">
             {results.artists.map((a) => (
