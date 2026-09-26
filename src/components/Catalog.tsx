@@ -21,6 +21,8 @@ const MODES: { value: SearchMode; label: string }[] = [
   { value: "artist", label: "Исполнитель" },
   { value: "title", label: "Название" },
 ];
+// Поиск по тексту — только если в каталоге есть слова текстов (импорт из EnCore).
+const LYRICS_MODE = { value: "lyrics" as SearchMode, label: "Текст" };
 
 const BACKS: { value: BackFilter; label: string }[] = [
   { value: "", label: "Все" },
@@ -40,6 +42,7 @@ export function Catalog() {
   const [mode, setMode] = useState<SearchMode>("all");
   const [back, setBack] = useState<BackFilter>("");
   const [artist, setArtist] = useState("");
+  const [favorites, setFavorites] = useState(false);
   const [results, setResults] = useState<Results | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   // null — ошибки нет; число — HTTP-статус; 0 — сеть.
@@ -48,7 +51,8 @@ export function Catalog() {
   const sentinel = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const key = JSON.stringify([query, mode, back, artist]);
+  const key = JSON.stringify([query, mode, back, artist, favorites]);
+  const modes = stats?.lyrics ? [...MODES, LYRICS_MODE] : MODES;
   const loading = results?.key !== key;
 
   useEffect(() => {
@@ -65,7 +69,7 @@ export function Catalog() {
   // Новый поиск при изменении запроса или фильтров.
   useEffect(() => {
     const ctl = new AbortController();
-    searchSongs({ q: query, mode, back, artist, offset: 0, limit: PAGE }, ctl.signal).then(
+    searchSongs({ q: query, mode, back, artist, favorites, offset: 0, limit: PAGE }, ctl.signal).then(
       (res) => {
         setResults({ ...res, key });
         setError(null);
@@ -79,7 +83,7 @@ export function Catalog() {
       },
     );
     return () => ctl.abort();
-  }, [key, query, mode, back, artist]);
+  }, [key, query, mode, back, artist, favorites]);
 
   // Подгрузка следующей страницы при прокрутке до конца списка.
   const canLoadMore = !!results && !loading && !loadingMore && results.items.length < results.total;
@@ -91,7 +95,7 @@ export function Catalog() {
         if (!entry.isIntersecting) return;
         obs.disconnect();
         setLoadingMore(true);
-        searchSongs({ q: query, mode, back, artist, offset: results.items.length, limit: PAGE })
+        searchSongs({ q: query, mode, back, artist, favorites, offset: results.items.length, limit: PAGE })
           .then(
             (res) =>
               setResults((prev) =>
@@ -105,7 +109,7 @@ export function Catalog() {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [canLoadMore, results, query, mode, back, artist]);
+  }, [canLoadMore, results, query, mode, back, artist, favorites]);
 
   const pickArtist = (name: string) => {
     setArtist(name);
@@ -118,6 +122,7 @@ export function Catalog() {
     setInput("");
     setQuery("");
     setArtist("");
+    setFavorites(false);
     inputRef.current?.focus();
   };
 
@@ -153,7 +158,7 @@ export function Catalog() {
             type="search"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Исполнитель или название"
+            placeholder={mode === "lyrics" ? "Слова из песни" : "Исполнитель или название"}
             aria-label="Поиск песни"
             enterKeyHint="search"
             autoComplete="off"
@@ -178,8 +183,22 @@ export function Catalog() {
         </form>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          <Segmented options={MODES} value={mode} onChange={setMode} />
+          <Segmented options={modes} value={mode} onChange={setMode} />
           <Segmented options={BACKS} value={back} onChange={setBack} />
+          {!!stats?.favorites && (
+            <button
+              type="button"
+              onClick={() => setFavorites((v) => !v)}
+              aria-pressed={favorites}
+              className={`cursor-pointer rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+                favorites
+                  ? "border-accent bg-accent text-accent-fg"
+                  : "border-line bg-surface text-muted hover:text-foreground"
+              }`}
+            >
+              ★ Избранное
+            </button>
+          )}
         </div>
 
         {artist && (
@@ -269,13 +288,19 @@ function Status({
 }
 
 function SongRow({ song, onArtist }: { song: Song; onArtist: (name: string) => void }) {
+  const lyricHits = song.matches?.lyrics;
   return (
     <li className="flex items-center gap-4 py-3">
       <div className="w-20 shrink-0 text-right font-mono text-xl font-semibold tabular-nums text-accent sm:w-24 sm:text-2xl">
-        {song.id}
+        {song.number ?? song.id}
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-lg font-medium leading-snug">
+          {song.favorite && (
+            <span title="Избранное заведения" className="mr-1.5 text-accent">
+              ★
+            </span>
+          )}
           <Highlight text={song.title} terms={song.matches?.title} />
         </div>
         <button
@@ -285,18 +310,34 @@ function SongRow({ song, onArtist }: { song: Song; onArtist: (name: string) => v
         >
           <Highlight text={song.artist} terms={song.matches?.artist} />
         </button>
+        {lyricHits && lyricHits.length > 0 && (
+          <div className="truncate text-sm text-muted">
+            в тексте: <mark>{lyricHits.slice(0, 5).join(", ")}</mark>
+          </div>
+        )}
       </div>
-      {song.backVocal && (
-        <span
-          title="С бэк-вокалом"
-          className="shrink-0 rounded-md border border-line px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted"
-        >
-          бэк
-        </span>
-      )}
+      <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center">
+        {song.tabName && (
+          <span title="Вкладка в EnCore" className={`${badge} border-accent text-accent`}>
+            {song.tabName}
+          </span>
+        )}
+        {song.vocalTrack && (
+          <span title="Есть дорожка с голосом исполнителя" className={badge}>
+            голос
+          </span>
+        )}
+        {song.backVocal && (
+          <span title="С бэк-вокалом" className={badge}>
+            бэк
+          </span>
+        )}
+      </div>
     </li>
   );
 }
+
+const badge = "rounded-md border border-line px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted";
 
 function Segmented<T extends string>({
   options,

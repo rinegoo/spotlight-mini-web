@@ -19,6 +19,14 @@ CATALOG_API_URL=http://localhost:8080 npm run dev -- -H 0.0.0.0
 | `CATALOG_API_URL` | `http://localhost:8080` (в образе — `http://server:8080`) | адрес API |
 | `PORT` | `3000` | |
 
+Прокси пропускает POST только для `/api/import` — импорт каталога от `encore-sync`
+(тело и токен передаются в API как есть; порт API наружу не открыт).
+
+Интерфейс использует поля каталога EnCore, когда они есть: номер песни (`number`),
+значки «голос» (отдельная дорожка с голосом), «бэк», ★ избранное и название вкладки
+для песен не из основной базы; режим поиска «Текст» (если в каталоге есть слова
+текстов), фильтр «★ Избранное», строка «в тексте: …» с найденными словами.
+
 Проверки: `npm run typecheck`, `npm run lint`.
 
 ## Старые планшеты (iPadOS 15)
@@ -36,4 +44,6 @@ iPadOS 15, в `package.json` задан `browserslist` с `safari 15` / `ios_saf
 GitHub Actions (`.github/workflows/ci.yml`): typecheck и lint, затем Docker-образ
 `ghcr.io/rinegoo/spotlight-mini-web` (standalone-сборка Next.js).
 Теги: `latest` и `sha-<commit>` для `main`, `1.2.3` / `1.2` для git-тегов `v1.2.3`.
-Запуск вместе с API — `deploy/docker-compose.yml` в репозитории API.
+Запуск вместе с API — `deploy/docker-compose.yml` в репозитории API. После
+сборки из `main` CI вызывает вебхук стека Portainer (секрет
+`PORTAINER_WEBHOOK_URL`, подробнее — в README репозитория API).

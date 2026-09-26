@@ -1,14 +1,23 @@
-export type SearchMode = "all" | "artist" | "title";
+export type SearchMode = "all" | "artist" | "title" | "lyrics";
 export type BackFilter = "" | "yes" | "no";
 
 export interface Song {
+  /** Уникальный ключ («n» или «вкладка:n») — не для показа. */
   id: string;
+  /** Номер песни в караоке-системе — его называют оператору. */
+  number?: string;
+  /** Название вкладки EnCore — только у песен не из основной базы. */
+  tabName?: string;
   title: string;
   artist: string;
   backVocal: boolean;
+  /** Есть отдельная дорожка с голосом (можно включить голос исполнителя). */
+  vocalTrack?: boolean;
+  /** Избранное заведения. */
+  favorite?: boolean;
   format?: string;
-  /** Нормализованные совпавшие слова по полям; "*" — совпало всё поле. */
-  matches?: { title?: string[]; artist?: string[] };
+  /** Нормализованные совпавшие слова по полям; "*" — совпало всё поле; lyrics — найдено в тексте. */
+  matches?: { title?: string[]; artist?: string[]; lyrics?: string[] };
 }
 
 export interface ArtistFacet {
@@ -28,7 +37,12 @@ export interface SearchResponse {
 export interface Stats {
   songs: number;
   artists: number;
+  favorites?: number;
+  /** Песен со словами текста — есть ли поиск «по тексту». */
+  lyrics?: number;
+  tabs?: { id: number; name: string; songs: number }[];
   adapter: string;
+  kind?: "file" | "import";
   loadedAt: string;
 }
 
@@ -37,6 +51,7 @@ export interface SearchParams {
   mode: SearchMode;
   back: BackFilter;
   artist: string;
+  favorites: boolean;
   offset: number;
   limit: number;
 }
@@ -53,6 +68,7 @@ export async function searchSongs(p: SearchParams, signal?: AbortSignal): Promis
   if (p.mode !== "all") qs.set("mode", p.mode);
   if (p.back) qs.set("back", p.back);
   if (p.artist) qs.set("artist", p.artist);
+  if (p.favorites) qs.set("fav", "1");
   qs.set("offset", String(p.offset));
   qs.set("limit", String(p.limit));
   const res = await fetch(`/api/search?${qs}`, { signal });
