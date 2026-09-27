@@ -16,8 +16,20 @@ export interface Song {
   /** Избранное заведения. */
   favorite?: boolean;
   format?: string;
+  /** Ограничения (модуль restrictions): указание, которое обязательно показать у песни. */
+  restrictions?: Restriction[];
   /** Нормализованные совпавшие слова по полям; "*" — совпало всё поле; lyrics — найдено в тексте. */
   matches?: { title?: string[]; artist?: string[]; lyrics?: string[] };
+}
+
+export interface Restriction {
+  /** Вид, например "ru.inoagent". */
+  kind: string;
+  /** Кого касается — как в официальном реестре. */
+  subject: string;
+  /** Текст указания по установленной форме — показывать без изменений. */
+  label: string;
+  note?: string;
 }
 
 export interface ArtistFacet {
@@ -43,6 +55,13 @@ export interface Stats {
   tabs?: { id: number; name: string; songs: number }[];
   adapter: string;
   kind?: "file" | "import";
+  restrictions?: {
+    policy: "label" | "hide" | "off";
+    labeled: number;
+    hidden: number;
+    /** Размер шрифта указания относительно основного текста (по закону — 2). */
+    labelScale: number;
+  };
   loadedAt: string;
 }
 

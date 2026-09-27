@@ -236,7 +236,7 @@ export function Catalog() {
 
         <ul className="divide-y divide-line">
           {items.map((s) => (
-            <SongRow key={s.id} song={s} onArtist={pickArtist} />
+            <SongRow key={s.id} song={s} onArtist={pickArtist} labelScale={stats?.restrictions?.labelScale ?? 2} />
           ))}
         </ul>
         <div ref={sentinel} />
@@ -287,7 +287,15 @@ function Status({
   );
 }
 
-function SongRow({ song, onArtist }: { song: Song; onArtist: (name: string) => void }) {
+function SongRow({
+  song,
+  onArtist,
+  labelScale,
+}: {
+  song: Song;
+  onArtist: (name: string) => void;
+  labelScale: number;
+}) {
   const lyricHits = song.matches?.lyrics;
   return (
     <li className="flex items-center gap-4 py-3">
@@ -310,6 +318,18 @@ function SongRow({ song, onArtist }: { song: Song; onArtist: (name: string) => v
         >
           <Highlight text={song.artist} terms={song.matches?.artist} />
         </button>
+        {song.restrictions?.map((r) => (
+          // Указание по установленной форме: под заголовком, контрастным цветом,
+          // шрифтом в labelScale раз крупнее основного текста (text-lg). Текст не менять.
+          <p
+            key={r.kind + r.subject}
+            className="my-1 font-semibold leading-tight text-accent"
+            style={{ fontSize: `calc(1.125rem * ${labelScale})` }}
+          >
+            {r.label}
+            {r.note && <span className="block text-sm font-normal text-muted">{r.note}</span>}
+          </p>
+        ))}
         {lyricHits && lyricHits.length > 0 && (
           <div className="truncate text-sm text-muted">
             в тексте: <mark>{lyricHits.slice(0, 5).join(", ")}</mark>
