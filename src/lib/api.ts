@@ -56,9 +56,13 @@ export interface Stats {
   adapter: string;
   kind?: "file" | "import";
   restrictions?: {
-    policy: "label" | "hide" | "off";
+    /** Юрисдикции заведения (RU). */
+    regions: string[];
+    /** Действующие политики по видам ограничений. */
+    kinds: { kind: string; title: string; policy: "off" | "label" | "hide"; min: string; requested?: string }[];
     labeled: number;
     hidden: number;
+    review: number;
     /** Размер шрифта указания относительно основного текста (по закону — 2). */
     labelScale: number;
   };
